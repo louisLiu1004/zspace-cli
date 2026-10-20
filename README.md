@@ -4,6 +4,64 @@
 
 ---
 
+## 实测状态与验证范围说明
+
+> [!IMPORTANT]
+> 为保证使用者对各项功能稳定性与数据安全有清晰预期，以下明确列出已在真实极空间设备（Z4Pro+ 系列）上完整实测通过的范围，以及尚未实测或受硬件/套件限制的功能。
+
+### ✅ 已真机实测验证（可放心使用）
+
+1. **鉴权与连接底座**
+   - 本地客户端 `vuex.json` 免密无感读取（支持本地代理 `127.0.0.1:13579` 与局域网直连 `5055/8050` 双通道自动回退）。
+   - `zs check`、`zs auth check`、`zs auth info` 连接体检与存储概览。
+2. **全量 2,004 接口动态调用引擎**
+   - `zs api stats`、`zs api search`、`zs api info`、`zs api call` 均经实测验证，可灵活检索并直接调用底层任意接口。
+3. **内嵌迅雷下载（`zs xl`）全闭环实测**
+   - 包含**读写全生命周期**：
+     - `zs xl status` / `zs xl ls` / `zs xl info` / `zs xl dirs`（只读查询）。
+     - `zs xl parse`（解析磁力/直链）、`zs xl add`（创建下载任务）、`zs xl pause` / `zs xl resume`（任务暂停与恢复）、`zs xl rm --delete-file`（删除任务并清理本地落盘文件）。
+4. **原生下载中心（`zs dl`）**
+   - `zs dl ls`、`zs dl config` 及后台 `TrAndAria` 守护进程状态自检与诊断提示。
+5. **存储池与物理硬盘（`zs pool`）**
+   - `zs pool ls`、`zs pool info`、`zs pool disks`（槽位/型号/温度/通电时长/健康状态）、`zs pool smart <槽位或SN>`（20 项 S.M.A.R.T. 指标）、`zs pool cache`、`zs pool usb`。
+6. **文件与分享只读浏览（`zs file` / `zs share` / `zs safe`）**
+   - `zs file ls`（含存储池与 NVMe 聚合根目录浏览）、`zs file tree`（目录树渲染）、`zs file info`、`zs file search`（全局索引秒搜，带高亮控制符清洗）、`zs file trash ls`（回收站列表）、`zs file large`（大文件扫描）、`zs file dedup`（重复去重任务状态）。
+   - `zs share ls`（公开外链、闪电传与内部共享列表及统计）。
+   - `zs safe status`（保险箱与加密目录状态查询）。
+7. **Docker 容器管理（`zs docker`）**
+   - `zs docker ps`（容器列表、实时 CPU/内存占用与端口映射）、`zs docker images`（本地镜像列表及更新检测）、`zs compose ls`（Compose 项目枚举）。
+8. **系统监控与硬件（`zs sys`）**
+   - `zs sys status`、`zs sys versions`（系统与各组件版本列表）、`zs sys ups`、`zs sys upgrade`（固件升级状态）、`zs sys sleep-check`（硬盘休眠阻碍因素诊断）。
+9. **网络与安全（`zs net` / `zs smb`）**
+   - `zs net firewall`（防火墙开关、网口策略与放行规则）、`zs net login-guard`（登录失败防护配置）、`zs net cert`（SSL 证书有效期查询）。
+   - `zs smb status`（Samba / FTP / WebDAV / DLNA 开关与端口聚合状态）。
+10. **极影视与相册只读（`zs video` / `zs album`）**
+    - `zs video status`、`zs video libs`（影视分类库与剧集合集统计）、`zs video latest`（最近添加影视作品）。
+    - `zs album home`（相册概览与我喜欢照片）、`zs album ai`（人脸/场景/宠物/语义向量分析状态）、`zs album db`（数据库与备份配置）。
+11. **网盘与备份中心（`zs cloud` / `zs backup`）**
+    - `zs cloud status`（已绑定的百度网盘与 Google Drive 账号、空间用量与挂载点，敏感字段自动脱敏）。
+    - `zs backup status`、`zs backup tasks`、`zs backup auto`、`zs backup fails`（失败文件明细及百度底层错误码）、`zs backup sync`、`zs backup db`。
+12. **AI MCP Server（`zs mcp`）**
+    - 27 项离线自动化测试全部通过，支持 `initialize` / `tools/list` / `tools/call`，内置**白名单优先防误触安全拦截机制**（对 `container_op`、`reboot`、`delete` 等高危写操作默认拦截，需传入 `confirm_write=true` 方可执行）。
+
+---
+
+### ⚠️ 尚未实测或受限说明（请谨慎使用）
+
+| 模块 / 功能 | 当前状态 | 说明与建议 |
+| :--- | :--- | :--- |
+| **文件高级写操作** (`zs file upload / download / rm / unzip / zip / mkdir / mv / cp`) | ⚠️ **未做全量破坏性验证** | 代码基于官方客户端逆向逻辑与分片协议编写，但由于涉及真实磁盘数据变更，**建议初次使用时先在临时目录/非重要测试文件上试验**。 |
+| **保险箱密码解锁** (`zs safe open / close`) | ⚠️ **未实测** | 涉及 NAS 公钥 RSA 加密与敏感目录挂载，请先在测试加密文件夹上验证。 |
+| **容器启停与删除** (`zs docker start / stop / restart / rm / to-compose`) | ⚠️ **未实测** | 底层接口已逆向对接，但为防止生产环境容器被误关停，建议优先通过 `zs docker ps / stats / logs` 监控。 |
+| **极影视写操作** (`zs video scan / tmdb / live`) | ⚠️ **未实测** | 涉及影视库重新刮削与元数据修改，当前仅实测了分类库及最新添加等只读命令。 |
+| **KVM 虚拟机** (`zs vm`) | 🚫 **受硬件/套件限制** | 测试机未在极空间「应用中心」安装「虚拟机 (zsvirt)」套件，命令会自动返回安装指引。 |
+| **监控中心** (`zs nvr`) | 🚫 **受套件限制** | 测试机未安装「监控中心 (camera)」套件，命令会自动给出安装提示。 |
+| **极音乐** (`zs music`) | 🚫 **受套件限制** | 测试机未安装「极音乐 (music)」套件，命令会自动给出安装提示。 |
+| **其它网盘** (`115 / 夸克 / 阿里云盘 / 天翼 / OneDrive`) | ⚠️ **未实测** | 测试机仅绑定了百度网盘与 Google Drive，其它网盘由于缺少账号授权未作实机联调。 |
+| **系统关机与重启** (`zs sys reboot / shutdown`) | ⚠️ **未实测** | 涉及整机掉电与重启，避免在生产或有读写任务的 NAS 上直接测试。 |
+
+---
+
 ## 简介
 
 `zspace-cli`（可执行命令为 `zs`）是专为极空间 NAS 设计的现代化命令行工具与 MCP (Model Context Protocol) 服务端。通过逆向提取官方客户端 73 个业务模块的 2,004 个 API 元数据，提供涵盖存储监控、文件管理、迅雷下载、原生下载中心、Docker 容器与 Compose 编排、KVM 虚拟机、私人保险箱等全方位的操作能力，并支持在 Stdio 上运行标准 MCP 协议，无缝接入 Claude Desktop、Cursor、Antigravity 等各类 AI 助手。
